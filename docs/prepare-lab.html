@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prepare the Lab | CLMEL26 NetDevOps Lab</title>
+  <meta name="description" content="Prepare the lab environment: access CML, start the topology and open device consoles.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230d274d'/><text x='50' y='70' font-size='56' text-anchor='middle' fill='%2300bceb' font-family='Arial' font-weight='bold'>N</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar" id="sidebar-mount"></aside>
+    <div class="backdrop"></div>
+    <div class="main">
+      <div class="topbar">
+        <button class="hamburger" aria-label="Toggle navigation">&#9776;</button>
+        <span class="topbar__title">Prepare the Lab</span>
+      </div>
+      <main class="content">
+
+        <span class="page-eyebrow">Lab Guide &middot; Step 2</span>
+        <h1>Prepare the Lab Environment</h1>
+        <p class="lead">Bring up the CML topology so it can support the automation scenarios that follow.</p>
+
+        <div class="admonition admonition--note">
+          <div class="admonition__title">Remote access</div>
+          <p>Access the Ubuntu workstation GUI through the dCloud VM console. If the browser-based GUI is unavailable, connect with the Cisco Secure Client VPN and then SSH into the lab or reach the lab IPs directly in a browser.</p>
+        </div>
+
+        <h2 id="access-cml">Log in to CML</h2>
+        <ol class="steps">
+          <li>
+            <h3>Open the workstation</h3>
+            <p>On the dCloud topology page, open the <strong>ubuntu-25.04</strong> workstation. Under <em>Remote Access</em>, choose <strong>VM Console</strong> to reach the desktop.</p>
+          </li>
+          <li>
+            <h3>Browse to CML</h3>
+            <p>From the workstation, open the Cisco Modeling Labs URL in any browser:</p>
+            <div class="codeblock codeblock--plain">
+              <div class="codeblock__head"><span class="fname"><span class="codeblock__dot" style="background:#00bceb"></span>CML URL</span><button class="copy-btn">Copy</button></div>
+              <pre><code>http://198.18.1.2/</code></pre>
+            </div>
+          </li>
+          <li>
+            <h3>Authenticate</h3>
+            <p>Enter username <code>admin</code>, password <code>C1sco12345</code>, and click <strong>Login</strong>. The CML dashboard appears.</p>
+          </li>
+        </ol>
+
+        <h2 id="start-topology">Start the topology</h2>
+        <ol class="steps">
+          <li>
+            <h3>Start the lab</h3>
+            <p>Under the lab topology, click the <strong>Start</strong> button to power on the virtual devices.</p>
+          </li>
+          <li>
+            <h3>Wait for boot</h3>
+            <p>Allow approximately <strong>five minutes</strong> for the nodes to finish booting.</p>
+            <div class="admonition admonition--warning">
+              <div class="admonition__title">Be patient</div>
+              <p>IOSv and CSR1000v need time to fully initialize. Opening a console too early may show a blank screen — give the nodes time to reach the login prompt.</p>
+            </div>
+          </li>
+          <li>
+            <h3>Open the topology</h3>
+            <p>Click anywhere on the network diagram to enter the lab and begin accessing devices.</p>
+          </li>
+        </ol>
+
+        <h2 id="console">Open a device console</h2>
+        <ol class="steps">
+          <li>
+            <h3>Right-click a node</h3>
+            <p>Right-click a device to open the context menu, then choose <strong>Console</strong> for CLI access.</p>
+          </li>
+          <li>
+            <h3>Open the console</h3>
+            <p>Click <strong>Open Console</strong>. When prompted, log in with the router credentials.</p>
+            <div class="codeblock codeblock--plain">
+              <div class="codeblock__head"><span class="fname"><span class="codeblock__dot" style="background:#7ee0b0"></span>router login</span><button class="copy-btn">Copy</button></div>
+              <pre><code>Username: admin
+Password: C1sco12345
+
+Router&gt; enable
+Password: C1sco12345
+Router#</code></pre>
+            </div>
+          </li>
+          <li>
+            <h3>Confirm reachability</h3>
+            <p>From each router, confirm the devices are up and note the interfaces you will be testing.</p>
+            <div class="codeblock codeblock--plain">
+              <div class="codeblock__head"><span class="fname"><span class="codeblock__dot" style="background:#f0b866"></span>verify</span><button class="copy-btn">Copy</button></div>
+              <pre><code>show ip interface brief
+show ip route static</code></pre>
+            </div>
+          </li>
+        </ol>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Device</th><th>Platform</th><th>Mgmt IP</th><th>pyATS OS</th></tr></thead>
+            <tbody>
+              <tr><td>iosv-1</td><td>Cisco IOSv <span class="tag tag--ios">IOS</span></td><td>198.18.1.7</td><td><code>ios</code></td></tr>
+              <tr><td>csr1000v-0</td><td>Cisco CSR1000v <span class="tag tag--iosxe">IOS-XE</span></td><td>198.18.1.6</td><td><code>iosxe</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="admonition admonition--tip">
+          <div class="admonition__title">Ready check</div>
+          <p>Before moving on, make sure both routers respond on the console and that you can reach CML at <code>http://198.18.1.2/</code>. The pipeline depends on SSH connectivity to both devices.</p>
+        </div>
+
+        <nav class="pager" id="pager-mount"></nav>
+      </main>
+
+      <footer class="site-footer">
+        <p>LTRENS-2687 &middot; NetDevOps Network Automation &middot; Rebuilt for CLMEL26 (2026).</p>
+      </footer>
+    </div>
+  </div>
+  <script src="assets/app.js"></script>
+</body>
+</html>

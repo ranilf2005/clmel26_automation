@@ -1,0 +1,18 @@
+# pyATS / Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# pyATS run artifacts
+logs/
+*.log
+archive/
+runinfo/
+*.tar.gz
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store

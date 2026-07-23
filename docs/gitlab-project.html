@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create a GitLab Project | CLMEL26 NetDevOps Lab</title>
+  <meta name="description" content="Create the GitLab project, define the CI/CD pipeline, push the project files and run the pipeline.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230d274d'/><text x='50' y='70' font-size='56' text-anchor='middle' fill='%2300bceb' font-family='Arial' font-weight='bold'>N</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar" id="sidebar-mount"></aside>
+    <div class="backdrop"></div>
+    <div class="main">
+      <div class="topbar">
+        <button class="hamburger" aria-label="Toggle navigation">&#9776;</button>
+        <span class="topbar__title">GitLab Project</span>
+      </div>
+      <main class="content">
+
+        <span class="page-eyebrow">Lab Guide &middot; Step 3</span>
+        <h1>Create a New Project in GitLab</h1>
+        <p class="lead">Stand up the repository, define the pipeline, and push the automation project.</p>
+
+        <p>The devbox includes an instance of <strong>GitLab-CE</strong> used as your version control system, along with a CI/CD <strong>runner</strong> that executes pipelines for building, testing, and deploying changes. You create a new project (git repository) to provide an Infrastructure-as-Code approach to network changes: when you push, changes are automatically deployed and tested in your CML lab.</p>
+
+        <h2 id="pipeline-flow">Pipeline flow</h2>
+        <ol class="steps">
+          <li><h3>Runner pulls the repo</h3><p>The GitLab Runner checks out the latest commit.</p></li>
+          <li><h3>pyATS tests run</h3><p>Ping and static-route checks execute against the CML devices.</p></li>
+          <li><h3>Fail &rarr; stop</h3><p>If tests <span class="tag tag--fail">FAIL</span>, the pipeline stops and nothing is deployed.</p></li>
+          <li><h3>Pass &rarr; deploy</h3><p>If tests <span class="tag tag--pass">PASS</span>, <code>configure_loopback.py</code> applies <code>Loopback300</code>.</p></li>
+          <li><h3>Report</h3><p>The final pipeline result is shown in GitLab.</p></li>
+        </ol>
+
+        <h2 id="expected">Expected results</h2>
+        <div class="grid grid--2">
+          <div class="card" style="border-top:3px solid var(--c-ok)">
+            <h3><span class="tag tag--pass">Case A</span> All tests pass</h3>
+            <p>Pipeline shows <strong>SUCCESS</strong> and the loopback is configured on both routers.</p>
+          </div>
+          <div class="card" style="border-top:3px solid var(--c-err)">
+            <h3><span class="tag tag--fail">Case B</span> Any test fails</h3>
+            <p>Pipeline shows <strong>FAILED</strong> and the loopback is <em>not</em> configured.</p>
+          </div>
+        </div>
+
+        <h2 id="tasks">Lab attendee tasks</h2>
+        <ol>
+          <li>Inspect <code>testbed.yaml</code> and confirm the router details.</li>
+          <li>Run a pipeline in GitLab.</li>
+          <li>Observe the pass / fail output in GitLab CI/CD.</li>
+          <li>If passed, log in to the router and verify the loopback exists.
+            <ul>
+              <li>If the loopback exists, the pipeline skips and passes.</li>
+              <li>If not, configure the loopback interfaces with the IP/mask.</li>
+            </ul>
+          </li>
+          <li>If failed, troubleshoot until the tests pass.</li>
+        </ol>
+
+        <h2 id="login">GitLab and CML login</h2>
+        <ol class="steps">
+          <li>
+            <h3>Log in to the devbox</h3>
+            <p>Log in to the Ubuntu PC GUI, or SSH into it at <code>198.18.1.4</code> if using the VPN.</p>
+          </li>
+          <li>
+            <h3>Confirm the containers are running</h3>
+            <p>GitLab and the GitLab Runner run as Docker containers. Confirm they are up — otherwise the GitLab web UI at <code>http://198.18.1.4:8929/</code> will not load.</p>
+            <div class="codeblock">
+              <div class="codeblock__head"><span class="fname"><span class="codeblock__dot" style="background:#f0b866"></span>bash</span><button class="copy-btn">Copy</button></div>
+              <pre><code>cd /home/cisco/pyats_project/
+pwd
+sudo docker start gitlab
+sudo docker ps -a</code></pre>
+            </div>
+          </li>
+          <li>
+            <h3>Log in to the GitLab UI</h3>
+            <p>Open <code>http://198.18.1.4:8929/</code> and sign in.</p>
+          </li>
+          <li>
+            <h3>Create a new blank project</h3>
+            <p>In the GitLab UI, create a <strong>new blank project</strong> and fill in the details for your automation project.</p>
+          </li>
+          <li>
+            <h3>Enable the runner for the project</h3>
+            <p>In <em>Settings &rarr; CI/CD &rarr; Runners</em>, ensure the <code>pyats-fast</code> runner is enabled for this project.</p>
+          </li>
+        </ol>
+
+        <h2 id="clone">Clone and populate the repository</h2>
+        <ol class="steps">
+          <li>
+            <h3>Clone with HTTPS</h3>
+            <p>Open a terminal on the devbox and clone your new project (use the HTTPS clone URL shown in GitLab).</p>
+            <div class="codeblock">
+              <div class="codeblock__head"><span class="fname"><span class="codeblock__dot" style="background:#f0b866"></span>bash</span><button class="copy-btn">Copy</button></div>
+              <pre><code>cd /home/cisco/pyats_project/
+git clone http://198.18.1.4:8929/root/&lt;your-project&gt;.git
+cd &lt;your-project&gt;</code></pre>
+            </div>
+          </li>
+          <li>
+            <h3>Create the project files</h3>
+            <p>Create the directory structure below. You can create folders and files with <code>mkdir</code> and an editor such as <code>vi</code> or <code>nano</code>.</p>
+            <div class="codeblock">
+              <div class="codeblock__head"><span class="fname"><span class="codeblock__dot" style="background:#00bceb"></span>project structure</span><button class="copy-btn">Copy</button></div>
+              <pre><code>.gitlab-ci.yml
+testbed/testbed.yaml
+jobs/smoke_job.py
+jobs/configure_loopback.py
+jobs/tests/test_ping_routes.py
+configs/loopbacks.yaml</code></pre>
+            </div>
+            <div class="admonition admonition--tip">
+              <div class="admonition__title">Shortcut</div>
+              <p>Your instructor can point you to a copy of all project files instead of typing them by hand. If you get stuck, see the solution files in <code>/home/cisco/clmel.solution/</code>. Every file is also listed on the <a href="project-files.html">Project Files</a> page.</p>
+            </div>
+          </li>
+          <li>
+            <h3>Commit your changes</h3>
+            <p>Stage and commit the files with a message.</p>
+            <div class="codeblock">
+              <div class="codeblock__head"><span class="fname"><span class="codeblock__dot" style="background:#f0b866"></span>bash</span><button class="copy-btn">Copy</button></div>
+              <pre><code>git add .
+git commit -m "add pyATS pipeline and testbed"</code></pre>
+            </div>
+          </li>
+          <li>
+            <h3>Push to start the pipeline</h3>
+            <p>Push to GitLab, which triggers your new pipeline. Authenticate with username <code>cisco</code> and password <code>C1sco12345</code>.</p>
+            <div class="codeblock">
+              <div class="codeblock__head"><span class="fname"><span class="codeblock__dot" style="background:#f0b866"></span>bash</span><button class="copy-btn">Copy</button></div>
+              <pre><code>git push</code></pre>
+            </div>
+          </li>
+        </ol>
+
+        <h2 id="observe">Observe the pipeline</h2>
+        <p>In the GitLab UI, open <strong>Build &rarr; Pipelines</strong> (or navigate to <code>http://198.18.1.4:8929/root/&lt;your-project&gt;/-/pipelines/</code>). Check the status and click into a job to inspect its log.</p>
+
+        <div class="admonition admonition--warning">
+          <div class="admonition__title">Expected first run: FAILED</div>
+          <p>On the first run the <em>test</em> stage typically <strong>fails</strong> because both routers cannot ping the gateway <code>192.168.1.1</code>. Click the failed job to view the errors.</p>
+        </div>
+
+        <ol class="steps">
+          <li>
+            <h3>Read the failure</h3>
+            <p>Open the failed <code>pyats_tests</code> job and read the ping failure in the log.</p>
+          </li>
+          <li>
+            <h3>Troubleshoot in CML</h3>
+            <p>Open CML at <code>http://198.18.1.2/</code>, review the running configuration of the routers, and fix the reason the gateway is unreachable.</p>
+          </li>
+          <li>
+            <h3>Re-trigger the pipeline</h3>
+            <p>Commit and push the fix from the terminal (repeat the commit / push step) or re-run the pipeline manually from the GitLab UI.</p>
+          </li>
+          <li>
+            <h3>Confirm success</h3>
+            <p>When tests pass, the <code>deploy_loopback</code> stage runs and applies <code>Loopback300</code>. Verify on each router.</p>
+            <div class="codeblock codeblock--plain">
+              <div class="codeblock__head"><span class="fname"><span class="codeblock__dot" style="background:#7ee0b0"></span>router#</span><button class="copy-btn">Copy</button></div>
+              <pre><code>show ip interface brief | include Loopback300
+show running-config interface Loopback300</code></pre>
+            </div>
+          </li>
+        </ol>
+
+        <div class="admonition admonition--tip">
+          <div class="admonition__title">Idempotent by design</div>
+          <p>If <code>Loopback300</code> already has <code>2.2.2.2</code>, <code>configure_loopback.py</code> detects it and skips — so re-running the pipeline is safe. See the <a href="appendix-other.html">Appendix</a>.</p>
+        </div>
+
+        <nav class="pager" id="pager-mount"></nav>
+      </main>
+
+      <footer class="site-footer">
+        <p>LTRENS-2687 &middot; NetDevOps Network Automation &middot; Rebuilt for CLMEL26 (2026).</p>
+      </footer>
+    </div>
+  </div>
+  <script src="assets/app.js"></script>
+</body>
+</html>

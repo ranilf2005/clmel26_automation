@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Conclusion | CLMEL26 NetDevOps Lab</title>
+  <meta name="description" content="Conclusion and what you accomplished in the NetDevOps automation lab.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230d274d'/><text x='50' y='70' font-size='56' text-anchor='middle' fill='%2300bceb' font-family='Arial' font-weight='bold'>N</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar" id="sidebar-mount"></aside>
+    <div class="backdrop"></div>
+    <div class="main">
+      <div class="topbar">
+        <button class="hamburger" aria-label="Toggle navigation">&#9776;</button>
+        <span class="topbar__title">Conclusion</span>
+      </div>
+      <main class="content">
+
+        <span class="page-eyebrow">Wrap up</span>
+        <h1>Conclusion</h1>
+        <p class="lead">You built a test-gated deployment pipeline for network configuration.</p>
+
+        <h2 id="accomplished">What you accomplished</h2>
+        <div class="grid grid--2">
+          <div class="card">
+            <div class="card__icon">&#10003;</div>
+            <h3>Config as code</h3>
+            <p>Managed router configuration intent as versioned YAML in GitLab.</p>
+          </div>
+          <div class="card">
+            <div class="card__icon">&#10003;</div>
+            <h3>Automated validation</h3>
+            <p>Ran pyATS reachability and route-consistency tests against a live CML testbed.</p>
+          </div>
+          <div class="card">
+            <div class="card__icon">&#10003;</div>
+            <h3>Gated deployment</h3>
+            <p>Applied <code>Loopback300</code> only after every test passed &mdash; safely and idempotently.</p>
+          </div>
+          <div class="card">
+            <div class="card__icon">&#10003;</div>
+            <h3>CI/CD visibility</h3>
+            <p>Observed clear pass / fail results in the GitLab pipeline view.</p>
+          </div>
+        </div>
+
+        <h2 id="takeaways">Key takeaways</h2>
+        <ul>
+          <li><strong>Test before you touch production.</strong> The pipeline never deploys on a failed test.</li>
+          <li><strong>Idempotency is safety.</strong> Re-running the pipeline converges to the same state without side effects.</li>
+          <li><strong>CML is your safety net.</strong> A disposable virtual testbed lets you validate risky changes first.</li>
+          <li><strong>Everything is reviewable.</strong> Git history, pipeline logs, and artifacts make changes auditable.</li>
+        </ul>
+
+        <h2 id="next">Where to go next</h2>
+        <div class="grid grid--3">
+          <a class="card card--link" href="project-files.html">
+            <div class="card__icon">5</div>
+            <h3>Review the code</h3>
+            <p>Re-read every project file end to end.</p>
+            <span class="card__go">Open &rarr;</span>
+          </a>
+          <a class="card card--link" href="gitlab-project.html">
+            <div class="card__icon">3</div>
+            <h3>Run it again</h3>
+            <p>Change the config and watch the pipeline react.</p>
+            <span class="card__go">Open &rarr;</span>
+          </a>
+          <a class="card card--link" href="https://github.com/ranilf2005/clmel26_automation" target="_blank" rel="noopener">
+            <div class="card__icon">&#9733;</div>
+            <h3>Clone the repo</h3>
+            <p>Get the full project from GitHub.</p>
+            <span class="card__go">GitHub &rarr;</span>
+          </a>
+        </div>
+
+        <h2 id="sessions">Related sessions at Cisco Live</h2>
+        <ul>
+          <li><a href="https://www.ciscolive.com/" target="_blank" rel="noopener">Cisco Live session catalog</a> &mdash; search for NetDevOps, pyATS, and CML breakout sessions.</li>
+        </ul>
+
+        <div class="admonition admonition--tip">
+          <div class="admonition__title">Thank you</div>
+          <p>Thanks for completing the NetDevOps Network Automation lab. Apply these patterns &mdash; version control, automated testing, and gated deployment &mdash; to your own network operations.</p>
+        </div>
+
+        <nav class="pager" id="pager-mount"></nav>
+      </main>
+
+      <footer class="site-footer">
+        <p>LTRENS-2687 &middot; NetDevOps Network Automation &middot; Rebuilt for CLMEL26 (2026).</p>
+      </footer>
+    </div>
+  </div>
+  <script src="assets/app.js"></script>
+</body>
+</html>

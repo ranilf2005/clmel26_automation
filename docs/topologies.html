@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Topologies | CLMEL26 NetDevOps Lab</title>
+  <meta name="description" content="Lab topologies: production and testing networks with identical device layouts.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230d274d'/><text x='50' y='70' font-size='56' text-anchor='middle' fill='%2300bceb' font-family='Arial' font-weight='bold'>N</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar" id="sidebar-mount"></aside>
+    <div class="backdrop"></div>
+    <div class="main">
+      <div class="topbar">
+        <button class="hamburger" aria-label="Toggle navigation">&#9776;</button>
+        <span class="topbar__title">Topologies</span>
+      </div>
+      <main class="content">
+
+        <span class="page-eyebrow">Reference</span>
+        <h1>Lab Topologies</h1>
+        <p class="lead">Two identical networks &mdash; one for testing, one for production.</p>
+
+        <p>The lab provides two CML topologies with an identical device layout. You stage and validate changes in the <strong>testing</strong> network, and only promote them to the <strong>production</strong> network once the pipeline is green.</p>
+
+        <h2 id="testbed">Automation testbed</h2>
+        <p>The pipeline connects to the two routers over SSH using the details in <code>testbed/testbed.yaml</code>.</p>
+        <div class="figure">
+          <pre class="mermaid">
+flowchart TB
+    subgraph RUN["GitLab Runner — pyats-fast"]
+      J["smoke_job.py<br/>test_ping_routes.py<br/>configure_loopback.py"]
+    end
+    GW(["Gateway<br/>192.168.1.1"])
+    subgraph CML["Cisco CML 2.9 — 198.18.1.2"]
+      I["iosv-1<br/>IOS · 198.18.1.7"]
+      C["csr1000v-0<br/>IOS-XE · 198.18.1.6"]
+    end
+    J -- "SSH pyATS" --> I
+    J -- "SSH pyATS" --> C
+    I -. "ping" .-> GW
+    C -. "ping" .-> GW
+          </pre>
+          <figcaption>pyATS connects to both routers and verifies reachability to the gateway.</figcaption>
+        </div>
+
+        <h2 id="test-prod">Testing vs. production</h2>
+        <div class="figure">
+          <pre class="mermaid">
+flowchart LR
+    subgraph TEST["Testing network"]
+      T1["iosv-1"]
+      T2["csr1000v-0"]
+    end
+    subgraph PROD["Production network"]
+      P1["iosv-1"]
+      P2["csr1000v-0"]
+    end
+    DEV["Git commit<br/>(config as code)"] --> TEST
+    TEST -- "tests pass &rarr; merge" --> PROD
+          </pre>
+          <figcaption>Changes flow from Git into testing, then promote to production once validated.</figcaption>
+        </div>
+
+        <h2 id="devices">Device summary</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Device</th><th>Platform</th><th>pyATS OS</th><th>Mgmt IP</th><th>Role</th></tr></thead>
+            <tbody>
+              <tr><td>iosv-1</td><td>Cisco IOSv <span class="tag tag--ios">IOS</span></td><td><code>ios</code></td><td>198.18.1.7</td><td>Router under test</td></tr>
+              <tr><td>csr1000v-0</td><td>Cisco CSR1000v <span class="tag tag--iosxe">IOS-XE</span></td><td><code>iosxe</code></td><td>198.18.1.6</td><td>Router under test</td></tr>
+              <tr><td>CML server</td><td>Cisco Modeling Labs 2.9</td><td>&mdash;</td><td>198.18.1.2</td><td>Virtualization host</td></tr>
+              <tr><td>Devbox</td><td>Ubuntu 25.04</td><td>&mdash;</td><td>198.18.1.4</td><td>GitLab + Runner</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="admonition admonition--note">
+          <div class="admonition__title">Target under test</div>
+          <p>The <code>PingGateway</code> test checks reachability to <code>192.168.1.1</code> from both routers. Until that gateway is reachable, the pipeline correctly refuses to deploy.</p>
+        </div>
+
+        <nav class="pager" id="pager-mount"></nav>
+      </main>
+
+      <footer class="site-footer">
+        <p>LTRENS-2687 &middot; NetDevOps Network Automation &middot; Rebuilt for CLMEL26 (2026).</p>
+      </footer>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script src="assets/app.js"></script>
+</body>
+</html>

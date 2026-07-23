@@ -1,0 +1,4 @@
+# Cisco test/automation frameworks used by the pipeline jobs
+pyats[full]
+genie
+PyYAML
