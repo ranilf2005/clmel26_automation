@@ -458,4 +458,68 @@
       b.dataset.tab = tab.id;
       b.textContent = tab.label;
       b.setAttribute("role", "tab");
-      
+      b.addEventListener("click", function () { activateTab(tab.id, true); });
+      tabsMount.appendChild(b);
+    });
+
+    activateTab(TABS[0].id, false);
+
+    window.addEventListener("scroll", function () {
+      if (scrollTicking) return;
+      scrollTicking = true;
+      window.requestAnimationFrame(function () { updateActiveMenu(); updateChrome(); scrollTicking = false; });
+    }, { passive: true });
+    updateChrome();
+  }
+
+  function showError(message) {
+    if (!panelsMount) return;
+    panelsMount.innerHTML =
+      '<div class="load-error"><strong>Could not load the guide.</strong><br>' + message +
+      '<br><br>The page renders the Markdown files in <code>content/</code> at runtime, so it must be ' +
+      'served over HTTP (GitHub Pages does this automatically). If you opened the file directly, run a ' +
+      'local server first.</div>';
+  }
+
+  /* ---------------- Boot ---------------- */
+  document.addEventListener("DOMContentLoaded", function () {
+    tabsMount = document.getElementById("tabs");
+    menuMount = document.getElementById("menu");
+    panelsMount = document.getElementById("panels");
+    pager = document.getElementById("pager");
+    topbarTitle = document.getElementById("topbar-title");
+    sidebarEl = document.getElementById("sidebar");
+    progressBar = document.getElementById("progress-bar");
+    toTopBtn = document.getElementById("to-top");
+
+    applyTheme(initialTheme());
+    setupZoom();
+
+    if (toTopBtn) toTopBtn.addEventListener("click", function () {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+
+    var toggle = document.getElementById("theme-toggle");
+    if (toggle) toggle.addEventListener("click", function () {
+      var next = document.documentElement.getAttribute("data-theme") === "light" ? "dark" : "light";
+      applyTheme(next);
+      renderMermaidIn(activePanelEl());
+    });
+
+    var hamburger = document.getElementById("hamburger");
+    var backdrop = document.getElementById("backdrop");
+    if (hamburger) hamburger.addEventListener("click", function () { document.body.classList.toggle("nav-open"); });
+    if (backdrop) backdrop.addEventListener("click", function () { document.body.classList.remove("nav-open"); });
+
+    if (!window.marked) { showError("The markdown renderer (marked) failed to load from the CDN."); return; }
+
+    Promise.all(TABS.map(function (tab) {
+      return fetch(tab.file, { cache: "no-cache" }).then(function (r) {
+        if (!r.ok) throw new Error(tab.file + " \u2192 HTTP " + r.status);
+        return r.text();
+      });
+    }))
+      .then(build)
+      .catch(function (err) { showError(String(err && err.message ? err.message : err)); });
+  });
+})();
