@@ -5,7 +5,7 @@
    (with light toggle) layout: left tabs + menu, right content.
    ============================================================ */
 (function () {
-  "use strict";
+  "use strict"; /* CLMEL26 lab guide */
 
   // One editable Markdown file per left-hand tab.
   var TABS = [
@@ -16,6 +16,7 @@
   ];
 
   var tabsMount, menuMount, panelsMount, pager, topbarTitle, sidebarEl;
+  var progressBar, toTopBtn, zoomOverlay, zoomInner;
   var panels = [];
   var currentTab = null;
   var scrollTicking = false;
@@ -182,6 +183,59 @@
       h.appendChild(num);
       h.appendChild(document.createTextNode(m[2]));
     });
+  }
+
+  /* ---------------- Click-to-zoom (diagrams + images) ---------------- */
+  function openZoom(node) {
+    if (!zoomOverlay || !zoomInner || !node) return;
+    zoomInner.innerHTML = "";
+    var clone = node.cloneNode(true);
+    // Let the diagram/image expand beyond its inline max-width inside the overlay.
+    clone.removeAttribute("style");
+    if (clone.tagName && clone.tagName.toLowerCase() === "svg") {
+      clone.style.maxWidth = "none";
+    }
+    clone.style.cursor = "default";
+    zoomInner.appendChild(clone);
+    zoomOverlay.classList.add("open");
+    document.body.style.overflow = "hidden";
+  }
+  function closeZoom() {
+    if (!zoomOverlay) return;
+    zoomOverlay.classList.remove("open");
+    zoomInner.innerHTML = "";
+    document.body.style.overflow = "";
+  }
+  function setupZoom() {
+    zoomOverlay = document.getElementById("zoom-overlay");
+    zoomInner = document.getElementById("zoom-inner");
+    var closeBtn = document.getElementById("zoom-close");
+    if (closeBtn) closeBtn.addEventListener("click", closeZoom);
+    if (zoomOverlay) zoomOverlay.addEventListener("click", function (e) {
+      if (e.target === zoomOverlay) closeZoom();
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") closeZoom();
+    });
+    // Delegate clicks: enlarge rendered Mermaid SVGs and framed images.
+    if (panelsMount) panelsMount.addEventListener("click", function (e) {
+      var svg = e.target.closest ? e.target.closest(".mermaid svg") : null;
+      if (svg) { openZoom(svg); return; }
+      var merm = e.target.closest ? e.target.closest(".mermaid") : null;
+      if (merm) { var inner = merm.querySelector("svg"); if (inner) openZoom(inner); return; }
+      var img = e.target.closest ? e.target.closest(".md-img") : null;
+      if (img) { img.style.cursor = "zoom-in"; openZoom(img); }
+    });
+  }
+
+  /* ---------------- Reading progress + back-to-top ---------------- */
+  function updateChrome() {
+    var doc = document.documentElement;
+    var scrollTop = window.pageYOffset || doc.scrollTop || 0;
+    var height = doc.scrollHeight - doc.clientHeight;
+    var pct = height > 0 ? (scrollTop / height) * 100 : 0;
+    if (progressBar) progressBar.style.width = pct + "%";
+    if (toTopBtn) toTopBtn.classList.toggle("show", scrollTop > 420);
   }
 
   /* ---------------- Navigation ---------------- */
@@ -404,60 +458,4 @@
       b.dataset.tab = tab.id;
       b.textContent = tab.label;
       b.setAttribute("role", "tab");
-      b.addEventListener("click", function () { activateTab(tab.id, true); });
-      tabsMount.appendChild(b);
-    });
-
-    activateTab(TABS[0].id, false);
-
-    window.addEventListener("scroll", function () {
-      if (scrollTicking) return;
-      scrollTicking = true;
-      window.requestAnimationFrame(function () { updateActiveMenu(); scrollTicking = false; });
-    }, { passive: true });
-  }
-
-  function showError(message) {
-    if (!panelsMount) return;
-    panelsMount.innerHTML =
-      '<div class="load-error"><strong>Could not load the guide.</strong><br>' + message +
-      '<br><br>The page renders the Markdown files in <code>content/</code> at runtime, so it must be ' +
-      'served over HTTP (GitHub Pages does this automatically). If you opened the file directly, run a ' +
-      'local server first.</div>';
-  }
-
-  /* ---------------- Boot ---------------- */
-  document.addEventListener("DOMContentLoaded", function () {
-    tabsMount = document.getElementById("tabs");
-    menuMount = document.getElementById("menu");
-    panelsMount = document.getElementById("panels");
-    pager = document.getElementById("pager");
-    topbarTitle = document.getElementById("topbar-title");
-    sidebarEl = document.getElementById("sidebar");
-
-    applyTheme(initialTheme());
-
-    var toggle = document.getElementById("theme-toggle");
-    if (toggle) toggle.addEventListener("click", function () {
-      var next = document.documentElement.getAttribute("data-theme") === "light" ? "dark" : "light";
-      applyTheme(next);
-      renderMermaidIn(activePanelEl());
-    });
-
-    var hamburger = document.getElementById("hamburger");
-    var backdrop = document.getElementById("backdrop");
-    if (hamburger) hamburger.addEventListener("click", function () { document.body.classList.toggle("nav-open"); });
-    if (backdrop) backdrop.addEventListener("click", function () { document.body.classList.remove("nav-open"); });
-
-    if (!window.marked) { showError("The markdown renderer (marked) failed to load from the CDN."); return; }
-
-    Promise.all(TABS.map(function (tab) {
-      return fetch(tab.file, { cache: "no-cache" }).then(function (r) {
-        if (!r.ok) throw new Error(tab.file + " \u2192 HTTP " + r.status);
-        return r.text();
-      });
-    }))
-      .then(build)
-      .catch(function (err) { showError(String(err && err.message ? err.message : err)); });
-  });
-})();
+      
