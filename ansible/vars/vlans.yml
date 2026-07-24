@@ -12,7 +12,7 @@ vlans:
     name: USERS
     interfaces:
       - GigabitEthernet0/1
-  - id: 20
+  - id: 5000
     name: VOICE
     interfaces:
       - GigabitEthernet0/2
