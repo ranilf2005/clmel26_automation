@@ -15,7 +15,7 @@
     { id: "handson",  label: "Hands-on", file: "content/handson.md" }
   ];
 
-  var tabsMount, menuMount, panelsMount, pager, topbarTitle;
+  var tabsMount, menuMount, panelsMount, pager, topbarTitle, sidebarEl;
   var panels = [];
   var currentTab = null;
   var scrollTicking = false;
@@ -127,6 +127,28 @@
     });
   }
 
+  // Turn Markdown images into framed figures. When an image is the only thing in
+  // its paragraph, its alt text becomes a caption below it.
+  function styleImages(root) {
+    root.querySelectorAll("img").forEach(function (img) {
+      img.classList.add("md-img");
+      img.setAttribute("loading", "lazy");
+      var p = img.parentElement;
+      if (p && p.tagName === "P" && p.childNodes.length === 1) {
+        var fig = document.createElement("figure");
+        fig.className = "md-figure";
+        p.replaceWith(fig);
+        fig.appendChild(img);
+        var alt = img.getAttribute("alt");
+        if (alt) {
+          var cap = document.createElement("figcaption");
+          cap.textContent = alt;
+          fig.appendChild(cap);
+        }
+      }
+    });
+  }
+
   function addCopyButtons(root) {
     root.querySelectorAll("pre").forEach(function (pre) {
       if (pre.closest(".mermaid-figure")) return;
@@ -171,18 +193,48 @@
     menuMount.appendChild(label);
 
     tab.sections.forEach(function (s) {
+      var group = document.createElement("div");
+      group.className = "menu__group";
+      group.dataset.group = s.id;
+
       var a = document.createElement("a");
       a.href = "#" + s.id;
+      a.className = "menu__main";
       a.dataset.sec = s.id;
       var num = document.createElement("span");
       num.className = "num";
       num.textContent = s.num;
       var t = document.createElement("span");
+      t.className = "menu__text";
       t.textContent = stripNum(s.title);
       a.appendChild(num);
       a.appendChild(t);
+      if (s.subs.length) {
+        var caret = document.createElement("span");
+        caret.className = "menu__caret";
+        caret.setAttribute("aria-hidden", "true");
+        caret.textContent = "\u203A";
+        a.appendChild(caret);
+      }
       a.addEventListener("click", function (e) { e.preventDefault(); gotoSection(s.id); });
-      menuMount.appendChild(a);
+      group.appendChild(a);
+
+      if (s.subs.length) {
+        var subsWrap = document.createElement("div");
+        subsWrap.className = "menu__subs";
+        s.subs.forEach(function (sub) {
+          var sa = document.createElement("a");
+          sa.href = "#" + sub.id;
+          sa.className = "menu__sub";
+          sa.dataset.sec = sub.id;
+          sa.textContent = sub.title;
+          sa.addEventListener("click", function (e) { e.preventDefault(); gotoSection(sub.id); });
+          subsWrap.appendChild(sa);
+        });
+        group.appendChild(subsWrap);
+      }
+
+      menuMount.appendChild(group);
     });
   }
 
@@ -237,20 +289,52 @@
     document.body.classList.remove("nav-open");
   }
 
+  // Keep the highlighted menu link within the visible band of the scrollable
+  // sidebar, nudging it up or down only when it drifts out of view.
+  function scrollMenuToActive(link) {
+    if (!sidebarEl || !link) return;
+    var box = sidebarEl.getBoundingClientRect();
+    var lb = link.getBoundingClientRect();
+    var margin = 44;
+    if (lb.top < box.top + margin) {
+      sidebarEl.scrollTop -= (box.top + margin - lb.top);
+    } else if (lb.bottom > box.bottom - margin) {
+      sidebarEl.scrollTop += (lb.bottom - (box.bottom - margin));
+    }
+  }
+
+  // Scroll-spy across both levels: highlights the current main topic (h2) and
+  // sub-topic (h3), expands the active group, and keeps the active link in view.
   function updateActiveMenu() {
     var panel = document.querySelector(".panel.active");
     if (!panel) return;
-    var secs = Array.prototype.slice.call(panel.querySelectorAll(".guide-section"));
+    var targets = Array.prototype.slice.call(panel.querySelectorAll(".guide-section, .guide-sub"));
     var best = null, bestTop = -Infinity;
-    secs.forEach(function (s) {
-      var top = s.getBoundingClientRect().top;
-      if (top - 130 <= 0 && top > bestTop) { bestTop = top; best = s; }
+    targets.forEach(function (el) {
+      var top = el.getBoundingClientRect().top;
+      if (top - 130 <= 0 && top > bestTop) { bestTop = top; best = el; }
     });
-    if (!best && secs.length) best = secs[0];
-    var id = best ? best.id : null;
+    if (!best && targets.length) best = targets[0];
+    var activeId = best ? best.id : null;
+
+    var mainId = null;
+    if (best) {
+      if (best.classList.contains("guide-section")) { mainId = best.id; }
+      else { var sec = best.closest(".guide-section"); mainId = sec ? sec.id : null; }
+    }
+
     menuMount.querySelectorAll("a").forEach(function (a) {
-      a.classList.toggle("active", a.dataset.sec === id);
+      a.classList.toggle("active", a.dataset.sec === activeId);
     });
+    menuMount.querySelectorAll(".menu__group").forEach(function (g) {
+      var open = g.dataset.group === mainId;
+      g.classList.toggle("open", open);
+      var mainLink = g.querySelector(".menu__main");
+      if (mainLink) mainLink.classList.toggle("active-parent", open && activeId !== mainId);
+    });
+
+    var activeLink = menuMount.querySelector("a.active");
+    if (activeLink) scrollMenuToActive(activeLink);
   }
 
   /* ---------------- Build ---------------- */
@@ -270,21 +354,30 @@
       panel.setAttribute("role", "tabpanel");
       tab.sections = [];
 
-      // Partition each file's content into sections by <h2>.
-      var secEl = null;
+      // Partition each file's content into main sections by <h2>, and collect the
+      // <h3> sub-topics inside each so the left menu can show two nested levels.
+      var secEl = null, curSection = null, secIdx = 0;
       Array.prototype.slice.call(tmp.childNodes).forEach(function (node) {
         if (node.nodeType === 1 && node.tagName === "H2") {
           var title = node.textContent.trim();
-          var idx = tab.sections.length + 1;
+          secIdx = tab.sections.length + 1;
           var n = parseNum(title);
-          var secId = "sec-" + tab.id + "-" + idx;
+          var secId = "sec-" + tab.id + "-" + secIdx;
           secEl = document.createElement("div");
           secEl.className = "guide-section";
           secEl.id = secId;
           secEl.appendChild(node);
           panel.appendChild(secEl);
-          tab.sections.push({ num: isNaN(n) ? String(idx) : String(n), title: title, id: secId });
+          curSection = { num: isNaN(n) ? String(secIdx) : String(n), title: title, id: secId, subs: [] };
+          tab.sections.push(curSection);
         } else if (secEl) {
+          if (node.nodeType === 1 && node.tagName === "H3" && curSection) {
+            var subIdx = curSection.subs.length + 1;
+            var subId = "sub-" + tab.id + "-" + secIdx + "-" + subIdx;
+            node.id = subId;
+            node.classList.add("guide-sub");
+            curSection.subs.push({ id: subId, title: node.textContent.trim() });
+          }
           secEl.appendChild(node);
         }
         // any content before the first H2 is ignored (files start at an H2).
@@ -299,6 +392,7 @@
     convertMermaid(panelsMount);
     wrapTables(panelsMount);
     styleCallouts(panelsMount);
+    styleImages(panelsMount);
     addCopyButtons(panelsMount);
 
     // Build the tab buttons (once).
@@ -339,6 +433,7 @@
     panelsMount = document.getElementById("panels");
     pager = document.getElementById("pager");
     topbarTitle = document.getElementById("topbar-title");
+    sidebarEl = document.getElementById("sidebar");
 
     applyTheme(initialTheme());
 

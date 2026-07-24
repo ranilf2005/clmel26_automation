@@ -1,0 +1,4 @@
+# Put screenshots / images for the guide here.
+# Reference them from any content/*.md file like:
+#   ![A short caption shown under the image](assets/images/my-screenshot.png)
+# Paths are relative to docs/index.html, so always start with: assets/images/

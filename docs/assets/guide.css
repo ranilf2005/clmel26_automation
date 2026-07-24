@@ -154,22 +154,43 @@ html[data-theme="light"] .brand__sub { color: #a9c9ea; }
   border-color: transparent; box-shadow: 0 8px 18px rgba(0, 188, 235, .3);
 }
 
-/* ---------------- Section menu (left) ---------------- */
+/* ---------------- Section menu (left, two-level) ---------------- */
 .menu { display: flex; flex-direction: column; gap: 2px; }
 .menu__label {
   font-size: 10.5px; text-transform: uppercase; letter-spacing: .12em; font-weight: 700;
   color: #6f8bb0; padding: 12px 10px 6px;
 }
-.menu a {
-  display: flex; align-items: baseline; gap: 9px; padding: 7px 11px; border-radius: 8px;
+.menu__group { display: flex; flex-direction: column; }
+
+.menu__main {
+  display: flex; align-items: center; gap: 9px; padding: 7px 11px; border-radius: 8px;
   color: #c1d3ec; font-size: 13.5px; text-decoration: none; line-height: 1.35;
-  border-left: 2px solid transparent;
+  border-left: 2px solid transparent; cursor: pointer;
 }
-.menu a:hover { background: rgba(255, 255, 255, .07); color: #fff; text-decoration: none; }
-.menu a.active {
-  background: rgba(0, 188, 235, .14); color: #fff; border-left-color: var(--c-cyan);
+.menu__main:hover { background: rgba(255, 255, 255, .07); color: #fff; text-decoration: none; }
+.menu__main.active { background: rgba(0, 188, 235, .16); color: #fff; border-left-color: var(--c-cyan); }
+.menu__main.active-parent { color: #eaf2fd; border-left-color: rgba(0, 188, 235, .5); }
+.menu__main .num { color: var(--c-cyan); font-weight: 700; font-size: 12px; min-width: 16px; }
+.menu__main .menu__text { flex: 1 1 auto; }
+.menu__caret {
+  flex: 0 0 auto; color: var(--muted); font-size: 15px; line-height: 1;
+  transition: transform .22s ease, color .22s ease;
 }
-.menu .num { color: var(--c-cyan); font-weight: 700; font-size: 12px; min-width: 16px; }
+.menu__group.open .menu__caret { transform: rotate(90deg); color: var(--c-cyan); }
+
+.menu__subs {
+  display: flex; flex-direction: column; gap: 1px;
+  margin: 1px 0 4px 22px; border-left: 1px solid var(--line);
+  max-height: 0; overflow: hidden; transition: max-height .28s ease;
+}
+.menu__group.open .menu__subs { max-height: 560px; }
+.menu__sub {
+  display: block; padding: 5px 12px; border-radius: 0 6px 6px 0; color: var(--muted);
+  font-size: 12.6px; line-height: 1.35; text-decoration: none;
+  border-left: 2px solid transparent; margin-left: -1px;
+}
+.menu__sub:hover { background: rgba(255, 255, 255, .06); color: #eaf2fd; text-decoration: none; }
+.menu__sub.active { color: #fff; background: rgba(0, 188, 235, .12); border-left-color: var(--c-cyan); }
 
 .sidebar__foot {
   margin-top: 20px; padding-top: 16px; border-top: 1px solid rgba(255, 255, 255, .1);
@@ -269,6 +290,14 @@ html[data-theme="light"] .content tbody tr:nth-child(even) { background: #f6f9fd
 .callout--err  { border-left-color: var(--err);  background: var(--err-bg);  color: var(--err-ink); }
 .callout strong:first-child { color: inherit; }
 
+/* ---------------- Images / screenshots ---------------- */
+.md-figure { margin: 22px 0; text-align: center; }
+.md-img {
+  max-width: 100%; height: auto; border-radius: 12px;
+  border: 1px solid var(--line); box-shadow: var(--shadow); background: var(--panel);
+}
+.md-figure figcaption { margin-top: 9px; color: var(--muted); font-size: 13px; font-style: italic; }
+
 /* ---------------- Mermaid ---------------- */
 .mermaid-figure {
   background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
@@ -281,6 +310,7 @@ html[data-theme="light"] .content tbody tr:nth-child(even) { background: #f6f9fd
 .panel { display: none; }
 .panel.active { display: block; animation: fade .25s ease; }
 .guide-section { scroll-margin-top: 24px; padding-top: 6px; }
+.guide-sub { scroll-margin-top: 20px; }
 .guide-section + .guide-section { margin-top: 8px; }
 @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
