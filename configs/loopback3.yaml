@@ -1,0 +1,22 @@
+# =====================================================================
+#  Loopback3 definition - consumed by jobs/ping_and_loopback.py
+#
+#  The job runs in two steps:
+#    1. Every router must first PING `ping_target`.
+#    2. Only if all pings pass, it creates each Loopback3 below - but it
+#       checks for a DUPLICATE first (an existing Loopback3, or the IP
+#       already in use on another interface) and skips if found.
+#  If the ping fails, the CI/CD pipeline fails and NOTHING is configured.
+# =====================================================================
+ping_target: 192.168.1.1            # both routers must reach this first
+
+devices:
+  csr1000v-0:                       # 198.18.1.6 (IOS-XE)
+    - name: Loopback3
+      ip: 3.3.3.1
+      mask: 255.255.255.255
+
+  iosv-1:                           # 198.18.1.7 (IOS)
+    - name: Loopback3
+      ip: 3.3.3.2
+      mask: 255.255.255.255

@@ -8,6 +8,7 @@
 # =====================================================================
 stages:
   - validate
+  - network_check
   - deploy
 
 default:
@@ -51,3 +52,15 @@ deploy_prod:
     - ansible-playbook -i inventory/hosts.yml playbooks/configure_vlans.yml -e target=prod --check --diff
     - echo "== Deploy VLANs to production routers .6/.7 =="
     - ansible-playbook -i inventory/hosts.yml playbooks/configure_vlans.yml -e target=prod
+
+# -------- Network check: both routers ping a target, then (if OK) create Loopback3 --------
+# Runs on the pyATS runner image (has pyats/genie/unicon). Talks to the routers.
+#   ping fails  -> job exits 1 -> pipeline FAILS with a clear reason (nothing configured)
+#   ping passes -> creates Loopback3 (3.3.3.1 / 3.3.3.2), skipping any duplicate
+ping_and_loopback:
+  stage: network_check
+  needs: []                       # independent of the VLAN validate job
+  script:
+    - echo "== Step 1: both routers ping 192.168.1.1 =="
+    - echo "== Step 2: if ping OK, create duplicate-checked Loopback3 from configs/loopback3.yaml =="
+    - python jobs/ping_and_loopback.py --testbed testbed/testbed.yaml --config configs/loopback3.yaml
