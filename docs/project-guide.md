@@ -262,7 +262,7 @@ clmel26_automation/
 
 ### `docs/`
 
-The `docs/` folder is the GitHub Pages source: a self‑contained multi‑page HTML lab guide (`index.html`, `overview.html`, `pipeline.html`, `ansible-vlans.html`, …) plus `assets/style.css` and `assets/app.js`. **This document** is added as `project-guide.html` (standalone report) and `project-guide.md` (portable Markdown).
+The `docs/` folder is the GitHub Pages source. `index.html` renders this guide (`project-guide.md`) as a single‑page, dark‑themed site via `assets/guide.css` and `assets/guide.js`. **This document** is also provided as `project-guide.html` (standalone report) and `project-guide.md` (portable Markdown).
 
 ---
 

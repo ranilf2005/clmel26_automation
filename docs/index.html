@@ -1,142 +1,86 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NetDevOps Network Automation Lab | LTRENS-2687 · CLMEL26</title>
-  <meta name="description" content="Hands-on NetDevOps lab: build, test, stage and apply network configuration using Cisco CML, pyATS, Ansible and GitLab CI/CD.">
+  <title>NetDevOps Automation — End-to-End Lab Guide | LTRENS-2687 · CLMEL26</title>
+  <meta name="description" content="Cisco NetDevOps CI/CD lab guide: build, test, stage and apply network configuration as code with Cisco CML, pyATS, Ansible and GitLab CI/CD.">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230d274d'/><text x='50' y='70' font-size='56' text-anchor='middle' fill='%2300bceb' font-family='Arial' font-weight='bold'>N</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/guide.css">
 </head>
 <body>
   <div class="layout">
-    <aside class="sidebar" id="sidebar-mount"></aside>
-    <div class="backdrop"></div>
+    <!-- Left: brand + tabs + section menu -->
+    <aside class="sidebar" id="sidebar">
+      <a class="brand" href="#top">
+        <span class="brand__logo">NA</span>
+        <span class="brand__text">
+          <span class="brand__title">NetDevOps Lab</span>
+          <span class="brand__sub">LTRENS-2687 · CLMEL26</span>
+        </span>
+      </a>
+
+      <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Toggle light and dark theme">
+        <span class="theme-toggle__icon" aria-hidden="true">☾</span>
+        <span class="theme-toggle__label">Dark</span>
+      </button>
+
+      <div class="tabs" id="tabs" role="tablist" aria-label="Guide sections"></div>
+      <nav class="menu" id="menu" aria-label="Sections in this tab"></nav>
+
+      <div class="sidebar__foot">
+        <a href="project-guide.md" target="_blank" rel="noopener">Markdown source</a>
+        <a href="https://github.com/ranilf2005/clmel26_automation" target="_blank" rel="noopener">GitHub repo</a>
+      </div>
+    </aside>
+
+    <div class="backdrop" id="backdrop"></div>
+
+    <!-- Right: content -->
     <div class="main">
       <div class="topbar">
-        <button class="hamburger" aria-label="Toggle navigation">&#9776;</button>
-        <span class="topbar__title">Home</span>
+        <button class="hamburger" id="hamburger" type="button" aria-label="Toggle navigation">☰</button>
+        <span class="topbar__title" id="topbar-title">Lab Guide</span>
       </div>
-      <main class="content">
 
-        <section class="hero">
-          <span class="hero__eyebrow">LTRENS-2687 &middot; Cisco Live</span>
-          <h1>NetDevOps — Network Automation</h1>
-          <p>Build, Test, Stage, and Apply network configuration as code using Cisco Modeling Labs (CML), pyATS, Ansible, and a GitLab CI/CD pipeline.</p>
-          <div class="hero__actions">
-            <a class="btn btn--primary" href="overview.html">Start the Lab &rarr;</a>
-            <a class="btn btn--ghost" href="project-files.html">View Project Files</a>
-            <a class="btn btn--ghost" href="https://github.com/ranilf2005/clmel26_automation" target="_blank" rel="noopener">GitHub Repo</a>
+      <main class="content" id="content">
+        <a id="top"></a>
+        <header class="hero" id="hero">
+          <span class="hero__eyebrow">LTRENS-2687 · rebuilt for CLMEL26 / 2026</span>
+          <h1 class="hero__title">NetDevOps Automation — End-to-End Lab Guide</h1>
+          <p class="hero__lead">Network configuration described as code, tested automatically, and applied to real routers <strong>only when every test passes</strong>. The why, the how, every file, the runners, and each failure &amp; success path.</p>
+          <div class="hero__pills">
+            <span class="chip">GitLab CI/CD</span>
+            <span class="chip">GitHub Actions</span>
+            <span class="chip">pyATS / Genie</span>
+            <span class="chip">Ansible</span>
+            <span class="chip">Cisco CML</span>
+            <span class="chip">IOS &amp; IOS-XE</span>
           </div>
-        </section>
+        </header>
 
-        <div class="pills">
-          <span class="pill"><span class="dot"></span>Cisco CML 2.9</span>
-          <span class="pill"><span class="dot"></span>pyATS / Genie</span>
-          <span class="pill"><span class="dot"></span>Ansible</span>
-          <span class="pill"><span class="dot"></span>GitLab CI/CD</span>
-          <span class="pill"><span class="dot"></span>Python 3</span>
-          <span class="pill"><span class="dot"></span>YAML / IaC</span>
-        </div>
-
-        <h2>About this lab</h2>
-        <p>In this lab you manage abstracted network configuration in <strong>YAML</strong> under version control in GitLab. A CI/CD pipeline automatically validates every change against a virtual network running in CML, and only deploys to the devices when all tests pass — an infrastructure-as-code approach to network operations.</p>
-
-        <div class="admonition admonition--note">
-          <div class="admonition__title">Infrastructure as Code</div>
-          <p>Every network change is committed to Git, tested with pyATS in a CML testbed, and applied automatically only after the health checks succeed. If a test fails, the pipeline stops and the network is never touched.</p>
-        </div>
-
-        <h2>What you will do</h2>
-        <div class="grid grid--2">
-          <div class="card">
-            <div class="card__icon">1</div>
-            <h3>Version-control the network</h3>
-            <p>Store router configuration intent as YAML in a Git repository hosted in GitLab-CE.</p>
-          </div>
-          <div class="card">
-            <div class="card__icon">2</div>
-            <h3>Automate tests with pyATS</h3>
-            <p>Run reachability and static-route consistency checks against live CML devices.</p>
-          </div>
-          <div class="card">
-            <div class="card__icon">3</div>
-            <h3>Gate deployment on tests</h3>
-            <p>A GitLab pipeline deploys <code>Loopback300</code> only when every test passes.</p>
-          </div>
-          <div class="card">
-            <div class="card__icon">4</div>
-            <h3>Observe pass / fail</h3>
-            <p>Review pipeline results in GitLab CI/CD, then verify the change on the routers.</p>
+        <div id="panels">
+          <div class="loading" id="loading">
+            <span class="spinner" aria-hidden="true"></span> Loading lab guide…
           </div>
         </div>
 
-        <h2>The pipeline in one glance</h2>
-        <div class="figure">
-          <pre class="mermaid">
-flowchart LR
-    A["git push"] --> B["GitLab Runner<br/>pulls repo"]
-    B --> C{"pyATS tests<br/>Ping + Routes"}
-    C -- "FAIL" --> D["Pipeline FAILED<br/>no changes applied"]
-    C -- "PASS" --> E["configure_loopback.py<br/>applies Loopback300"]
-    E --> F["Pipeline SUCCESS"]
-          </pre>
-          <figcaption>Test-gated deployment: production is only touched after every check passes.</figcaption>
-        </div>
+        <nav class="pager" id="pager" aria-label="Tab navigation"></nav>
 
-        <h2>Jump to a section</h2>
-        <div class="grid grid--3">
-          <a class="card card--link" href="overview.html">
-            <div class="card__icon">0</div>
-            <h3>Overview</h3>
-            <p>Solution, audience and topology.</p>
-            <span class="card__go">Read &rarr;</span>
-          </a>
-          <a class="card card--link" href="prepare-lab.html">
-            <div class="card__icon">2</div>
-            <h3>Prepare the Lab</h3>
-            <p>Access CML and start the devices.</p>
-            <span class="card__go">Read &rarr;</span>
-          </a>
-          <a class="card card--link" href="gitlab-project.html">
-            <div class="card__icon">3</div>
-            <h3>GitLab Project</h3>
-            <p>Create the repo and run the pipeline.</p>
-            <span class="card__go">Read &rarr;</span>
-          </a>
-          <a class="card card--link" href="pipeline.html">
-            <div class="card__icon">4</div>
-            <h3>Pipeline Run</h3>
-            <p>Walk through a real pipeline execution.</p>
-            <span class="card__go">Read &rarr;</span>
-          </a>
-          <a class="card card--link" href="project-files.html">
-            <div class="card__icon">5</div>
-            <h3>Project Files</h3>
-            <p>Every file, with full source code.</p>
-            <span class="card__go">Read &rarr;</span>
-          </a>
-          <a class="card card--link" href="topologies.html">
-            <div class="card__icon">&#9673;</div>
-            <h3>Topologies</h3>
-            <p>Production and testing networks.</p>
-            <span class="card__go">Read &rarr;</span>
-          </a>
-        </div>
-
-        <nav class="pager" id="pager-mount"></nav>
+        <footer class="site-footer">
+          <p>LTRENS-2687 · NetDevOps Network Automation · Rebuilt for CLMEL26 (2026).
+          Rendered from <a href="project-guide.md" target="_blank" rel="noopener">project-guide.md</a> ·
+          Source on <a href="https://github.com/ranilf2005/clmel26_automation" target="_blank" rel="noopener">GitHub</a>.</p>
+        </footer>
       </main>
-
-      <footer class="site-footer">
-        <p>LTRENS-2687 &middot; NetDevOps Network Automation &middot; Rebuilt for CLMEL26 (2026).
-        Source on <a href="https://github.com/ranilf2005/clmel26_automation" target="_blank" rel="noopener">GitHub</a>.</p>
-      </footer>
     </div>
   </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
-  <script src="assets/app.js"></script>
+  <script src="assets/guide.js"></script>
 </body>
 </html>
