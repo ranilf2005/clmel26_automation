@@ -41,7 +41,9 @@ describe VLANs in [`ansible/vars/vlans.yml`](ansible/vars/vlans.yml); a GitHub A
 `validate` job (test/dev) asserts the schema — a wrong VLAN id or interface name fails
 with a detailed message and **nothing is deployed**. After the fix passes, a gated
 `deploy` job (needs `validate`, `main` only, `environment: production` with required
-reviewers) applies the VLANs to the routers. Full walkthrough:
+reviewers) applies the VLANs to the routers. The whole pipeline runs on a **self-hosted
+GitHub Actions runner on the devbox (`198.18.1.4`)**, which reaches the routers
+`198.18.1.6` (csr1000v-0) and `198.18.1.7` (iosv-1). Full walkthrough:
 **https://ranilf2005.github.io/clmel26_automation/ansible-vlans.html**
 
 ```bash

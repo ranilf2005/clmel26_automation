@@ -75,7 +75,7 @@ flowchart TD
             <thead><tr><th>File</th><th>Purpose</th></tr></thead>
             <tbody>
               <tr><td><code>vars/vlans.yml</code></td><td>The intent you edit &mdash; VLAN ids, names, and access interfaces.</td></tr>
-              <tr><td><code>playbooks/validate_vlans.yml</code></td><td><strong>Test/dev gate.</strong> Asserts the schema rules. No device needed, so it runs on a GitHub-hosted runner.</td></tr>
+              <tr><td><code>playbooks/validate_vlans.yml</code></td><td><strong>Test/dev gate.</strong> Asserts the schema rules. No device login needed &mdash; runs in seconds on the lab runner.</td></tr>
               <tr><td><code>playbooks/configure_vlans.yml</code></td><td>Applies the VLANs and access ports with <code>cisco.ios</code> modules.</td></tr>
               <tr><td><code>inventory/hosts.yml</code></td><td><code>test</code> and <code>prod</code> groups (same CML devices in this lab).</td></tr>
               <tr><td><code>group_vars/all.yml</code></td><td>Connection settings (network_cli, IOS, credentials).</td></tr>
@@ -116,7 +116,7 @@ flowchart TD
         </div>
 
         <h2 id="validate">Step 2 &mdash; The test/dev gate</h2>
-        <p><code>validate_vlans.yml</code> runs on <code>localhost</code> with <code>connection: local</code> &mdash; pure static checks, no router login. That is exactly what makes it safe to run on a GitHub-hosted runner: it validates your <em>intent</em> before it can reach the network.</p>
+        <p><code>validate_vlans.yml</code> runs on <code>localhost</code> with <code>connection: local</code> &mdash; pure static checks, no router login. It runs first on the lab runner (<code>198.18.1.4</code>) and validates your <em>intent</em> before anything can reach the network.</p>
         <div class="codeblock">
           <div class="codeblock__head"><span class="fname"><span class="codeblock__dot" style="background:#8957e5"></span>ansible/playbooks/validate_vlans.yml</span><button class="copy-btn">Copy</button></div>
           <pre><code>---
@@ -312,9 +312,28 @@ PLAY RECAP *******************************************************
 iosv-1      : ok=4  changed=3  unreachable=0  failed=0
 csr1000v-0  : ok=4  changed=3  unreachable=0  failed=0</code></pre>
         </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Role</th><th>Host</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td>CI/CD runner (self-hosted)</td><td><code>198.18.1.4</code></td><td>Devbox; runs <code>validate</code> and <code>deploy</code> with label <code>clmel</code>.</td></tr>
+              <tr><td>csr1000v-0 <span class="tag tag--iosxe">IOS-XE</span></td><td><code>198.18.1.6</code></td><td>Production router.</td></tr>
+              <tr><td>iosv-1 <span class="tag tag--ios">IOS</span></td><td><code>198.18.1.7</code></td><td>Production router.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>Register the runner once on the devbox so GitHub can dispatch the pipeline into the lab:</p>
+        <div class="codeblock">
+          <div class="codeblock__head"><span class="fname"><span class="codeblock__dot" style="background:#f0b866"></span>bash &mdash; on the devbox (198.18.1.4)</span><button class="copy-btn">Copy</button></div>
+          <pre><code># Settings -&gt; Actions -&gt; Runners -&gt; New self-hosted runner (copy the token)
+cd ~/actions-runner
+./config.sh --url https://github.com/ranilf2005/clmel26_automation \
+            --labels clmel --name clmel-devbox --token &lt;RUNNER_TOKEN&gt;
+sudo ./svc.sh install &amp;&amp; sudo ./svc.sh start</code></pre>
+        </div>
         <div class="admonition admonition--important">
-          <div class="admonition__title">Runner &amp; environment setup</div>
-          <p>The production routers live at <code>198.18.1.6</code> / <code>198.18.1.7</code>, which GitHub-hosted runners cannot reach. Run the deploy job on a <strong>self-hosted runner</strong> inside the pod (label it <code>self-hosted</code>) and protect the <code>production</code> environment with required reviewers under <em>Settings &rarr; Environments</em>.</p>
+          <div class="admonition__title">Why a lab runner</div>
+          <p>The routers <code>198.18.1.6</code> / <code>198.18.1.7</code> are only reachable from inside the pod, so the pipeline runs on the self-hosted runner on the devbox <code>198.18.1.4</code> &mdash; not a GitHub-hosted runner. Protect the <code>production</code> environment with required reviewers under <em>Settings &rarr; Environments</em> so the deploy waits for a manual <em>Approve</em>.</p>
         </div>
 
         <h2 id="verify">Verify on the routers</h2>
@@ -354,15 +373,13 @@ defaults:
 jobs:
   validate:                      # ---- TEST / DEV ----
     name: "Test / Dev - validate intent"
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, clmel]   # lab runner on the devbox 198.18.1.4
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - name: Install Ansible and linters
+      - name: Ensure Ansible and linters
         run: |
-          pip install "ansible-core&gt;=2.16" ansible-lint yamllint
+          python3 -m pip install --user "ansible-core&gt;=2.16" ansible-lint yamllint
+          echo "$HOME/.local/bin" &gt;&gt; "$GITHUB_PATH"
           ansible-galaxy collection install -r requirements.yml
       - name: Lint YAML
         run: yamllint .
@@ -377,13 +394,13 @@ jobs:
     name: "Production - apply to routers"
     needs: validate
     if: github.ref == 'refs/heads/main' &amp;&amp; github.event_name != 'pull_request'
-    runs-on: self-hosted
+    runs-on: [self-hosted, clmel]   # devbox 198.18.1.4 -&gt; routers .6/.7
     environment:
       name: production           # add required reviewers = manual approval
       url: https://ranilf2005.github.io/clmel26_automation/
     steps:
       - uses: actions/checkout@v4
-      - name: Install collections
+      - name: Ensure collections
         run: ansible-galaxy collection install -r requirements.yml
       - name: Deploy VLANs to production
         run: ansible-playbook -i inventory/hosts.yml playbooks/configure_vlans.yml -e target=prod</code></pre>
