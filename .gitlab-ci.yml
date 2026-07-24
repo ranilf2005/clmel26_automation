@@ -1,32 +1,53 @@
+# =====================================================================
+#  Ansible VLAN CI/CD  -  lab GitLab pipeline (runs on 198.18.1.4)
+#  Mirrors the GitHub Actions design so attendees hit the same gate:
+#    validate -> Test/Dev : lint + schema asserts (NO device needed)
+#    deploy   -> Prod     : manual gate, applies VLANs to routers .6/.7
+#  Runs on the pyats-fast runner (docker executor) using the local
+#  registry pyATS image; ansible-core is pip-installed when jobs start.
+# =====================================================================
 stages:
-  - test
+  - validate
   - deploy
 
-# -------- Stage 1: run pyATS tests --------
-pyats_tests:
-  stage: test
-  tags: ["pyats-fast"]                 # must match your fast runner's tag
-  image: "198.18.1.4:5050/root/pyatscml/pyats:1.0.0"   # pre-baked image
-  variables:
-    GIT_STRATEGY: fetch
-    GIT_DEPTH: "1"
-  script:
-    - echo "== pyATS version =="
-    - pyats version
-    - echo "== Running smoke job =="
-    - pyats run job jobs/smoke_job.py --testbed-file testbed/testbed.yaml --output logs/${CI_PIPELINE_ID}
-  artifacts:
-    when: always
-    expire_in: 7 days
-    paths:
-      - logs/
+default:
+  tags: ["pyats-fast"]                                 # your live fast runner
+  image: "198.18.1.4:5050/root/pyatscml/pyats:1.0.0"   # local registry image
 
-# -------- Stage 2: only runs if tests passed --------
-deploy_loopback:
-  stage: deploy
-  tags: ["pyats-fast"]                 # run on the fast runner too
-  image: "198.18.1.4:5050/root/pyatscml/pyats:1.0.0"
-  needs: ["pyats_tests"]               # gate on test success
+variables:
+  ANSIBLE_FORCE_COLOR: "1"
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+
+# -------- Stage 1: Test/Dev - validate intent (no device touched) --------
+validate_intent:
+  stage: validate
+  before_script:
+    - python -m pip install --quiet --upgrade "ansible-core>=2.16" ansible-lint yamllint
+    - export PATH="$HOME/.local/bin:$PATH"   # image user is 'ci'; pip puts scripts here
+    - cd ansible
+    - ansible-galaxy collection install -r requirements.yml
   script:
-    - echo "All tests passed. Deploying loopbacks defined in configs/loopbacks.yaml ..."
-    - python jobs/configure_loopback.py --testbed testbed/testbed.yaml --config configs/loopbacks.yaml
+    - echo "== Lint YAML =="
+    - yamllint .
+    - echo "== Lint playbooks =="
+    - ansible-lint playbooks/
+    - echo "== Syntax check =="
+    - ansible-playbook playbooks/configure_vlans.yml --syntax-check
+    - echo "== Validate VLAN and interface intent =="
+    - ansible-playbook playbooks/validate_vlans.yml
+
+# -------- Stage 2: Production - only if validate passed (manual gate) --------
+deploy_prod:
+  stage: deploy
+  needs: ["validate_intent"]      # blocked until validate_intent passes (the gate)
+  when: manual                    # production gate: a human clicks Deploy in the UI
+  before_script:
+    - python -m pip install --quiet --upgrade "ansible-core>=2.16"
+    - export PATH="$HOME/.local/bin:$PATH"   # image user is 'ci'; pip puts scripts here
+    - cd ansible
+    - ansible-galaxy collection install -r requirements.yml
+  script:
+    - echo "== Pre-flight dry run (no changes) =="
+    - ansible-playbook -i inventory/hosts.yml playbooks/configure_vlans.yml -e target=prod --check --diff
+    - echo "== Deploy VLANs to production routers .6/.7 =="
+    - ansible-playbook -i inventory/hosts.yml playbooks/configure_vlans.yml -e target=prod
