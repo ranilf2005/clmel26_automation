@@ -1,19 +1,18 @@
 /* ============================================================
    CLMEL26 NetDevOps Lab Guide — markdown-driven single page.
-   Renders project-guide.md into a tabbed, Cisco-branded, dark
+   Each tab is its own Markdown file under docs/content/. Edit a
+   file, push, and the published site updates. Cisco-branded dark
    (with light toggle) layout: left tabs + menu, right content.
    ============================================================ */
 (function () {
   "use strict";
 
-  var MD_URL = "project-guide.md";
-
-  // Group the 14 numbered sections into left-hand tabs.
+  // One editable Markdown file per left-hand tab.
   var TABS = [
-    { id: "overview", label: "Overview", range: [1, 4] },
-    { id: "project",  label: "Project",  range: [5, 7] },
-    { id: "pipeline", label: "Pipeline", range: [8, 10] },
-    { id: "handson",  label: "Hands-on", range: [11, 14] }
+    { id: "overview", label: "Overview", file: "content/overview.md" },
+    { id: "project",  label: "Project",  file: "content/project.md" },
+    { id: "pipeline", label: "Pipeline", file: "content/pipeline.md" },
+    { id: "handson",  label: "Hands-on", file: "content/handson.md" }
   ];
 
   var tabsMount, menuMount, panelsMount, pager, topbarTitle;
@@ -39,40 +38,43 @@
   }
 
   /* ---------------- Mermaid ---------------- */
-  function renderMermaid() {
-    if (!window.mermaid) return;
+  function activePanelEl() {
+    return document.querySelector(".panel.active");
+  }
+
+  // Render only the diagrams inside `container` that are not yet drawn for the
+  // current theme. Diagrams are rendered lazily as their tab becomes visible:
+  // mermaid cannot measure elements inside a display:none panel (it emits
+  // "translate(undefined, NaN)" SVGs), so hidden diagrams are never rendered.
+  function renderMermaidIn(container) {
+    if (!window.mermaid || !container) return;
+    var theme = mermaidTheme();
     try {
       window.mermaid.initialize({
         startOnLoad: false,
-        theme: mermaidTheme(),
+        theme: theme,
         securityLevel: "loose",
         flowchart: { htmlLabels: true, curve: "basis" },
         themeVariables: { fontFamily: "Inter, Segoe UI, sans-serif" }
       });
     } catch (e) {}
-    var nodes = Array.prototype.slice.call(document.querySelectorAll(".mermaid"));
+    var nodes = Array.prototype.slice.call(container.querySelectorAll(".mermaid"))
+      .filter(function (n) { return n.getAttribute("data-theme-rendered") !== theme; });
     if (!nodes.length) return;
     nodes.forEach(function (n) {
       n.removeAttribute("data-processed");
       n.innerHTML = n.getAttribute("data-src") || n.textContent;
+      n.setAttribute("data-theme-rendered", theme);
     });
-    function legacyRender() {
-      try { window.mermaid.init(undefined, nodes); } catch (e2) {}
-    }
     if (typeof window.mermaid.run === "function") {
       try {
         var result = window.mermaid.run({ nodes: nodes });
-        // run() renders successfully but can reject on re-render; swallow it
-        // rather than falling back to the legacy API (which mis-measures
-        // diagrams inside hidden panels and throws NaN transform errors).
-        if (result && typeof result.catch === "function") {
-          result.catch(function () {});
-        }
+        if (result && typeof result.catch === "function") { result.catch(function () {}); }
       } catch (e) {
-        legacyRender();
+        try { window.mermaid.init(undefined, nodes); } catch (e2) {}
       }
     } else {
-      legacyRender();
+      try { window.mermaid.init(undefined, nodes); } catch (e2) {}
     }
   }
 
@@ -217,6 +219,7 @@
       b.setAttribute("aria-selected", b.dataset.tab === id ? "true" : "false");
     });
     panels.forEach(function (p) { p.classList.toggle("active", p.id === "panel-" + id); });
+    renderMermaidIn(document.getElementById("panel-" + id));
 
     renderMenu(tab);
     buildPager(id);
@@ -251,45 +254,40 @@
   }
 
   /* ---------------- Build ---------------- */
-  function build(md) {
-    var html = window.marked.parse(md, { gfm: true, breaks: false, headerIds: false, mangle: false });
-    var tmp = document.createElement("div");
-    tmp.innerHTML = html;
-
-    // Partition rendered nodes into sections by <h2>.
-    var sections = [];
-    var cur = null;
-    Array.prototype.slice.call(tmp.childNodes).forEach(function (node) {
-      if (node.nodeType === 1 && node.tagName === "H2") {
-        cur = { title: node.textContent.trim(), num: parseNum(node.textContent), nodes: [node] };
-        sections.push(cur);
-      } else if (cur) {
-        cur.nodes.push(node);
-      }
-      // nodes before the first H2 (title, intro, TOC) are dropped — the hero covers them.
-    });
-    // Drop the markdown "Table of contents" section (the left menu replaces it).
-    sections = sections.filter(function (s) { return !isNaN(s.num) && !/table of contents/i.test(s.title); });
-
+  // `texts` is an array of Markdown strings, one per TAB (same order).
+  function build(texts) {
     panelsMount.innerHTML = "";
     panels = [];
 
-    TABS.forEach(function (tab) {
+    TABS.forEach(function (tab, ti) {
+      var html = window.marked.parse(texts[ti], { gfm: true, breaks: false, headerIds: false, mangle: false });
+      var tmp = document.createElement("div");
+      tmp.innerHTML = html;
+
       var panel = document.createElement("section");
       panel.className = "panel";
       panel.id = "panel-" + tab.id;
       panel.setAttribute("role", "tabpanel");
       tab.sections = [];
 
-      sections.forEach(function (s) {
-        if (s.num >= tab.range[0] && s.num <= tab.range[1]) {
-          var secEl = document.createElement("div");
+      // Partition each file's content into sections by <h2>.
+      var secEl = null;
+      Array.prototype.slice.call(tmp.childNodes).forEach(function (node) {
+        if (node.nodeType === 1 && node.tagName === "H2") {
+          var title = node.textContent.trim();
+          var idx = tab.sections.length + 1;
+          var n = parseNum(title);
+          var secId = "sec-" + tab.id + "-" + idx;
+          secEl = document.createElement("div");
           secEl.className = "guide-section";
-          secEl.id = "sec-" + s.num;
-          s.nodes.forEach(function (n) { secEl.appendChild(n); });
+          secEl.id = secId;
+          secEl.appendChild(node);
           panel.appendChild(secEl);
-          tab.sections.push({ num: s.num, title: s.title, id: "sec-" + s.num });
+          tab.sections.push({ num: isNaN(n) ? String(idx) : String(n), title: title, id: secId });
+        } else if (secEl) {
+          secEl.appendChild(node);
         }
+        // any content before the first H2 is ignored (files start at an H2).
       });
 
       panelsMount.appendChild(panel);
@@ -316,7 +314,6 @@
       tabsMount.appendChild(b);
     });
 
-    renderMermaid();
     activateTab(TABS[0].id, false);
 
     window.addEventListener("scroll", function () {
@@ -330,8 +327,9 @@
     if (!panelsMount) return;
     panelsMount.innerHTML =
       '<div class="load-error"><strong>Could not load the guide.</strong><br>' + message +
-      '<br><br>The page renders <code>project-guide.md</code> at runtime, so it must be served over HTTP ' +
-      '(GitHub Pages does this automatically). If you opened the file directly, run a local server first.</div>';
+      '<br><br>The page renders the Markdown files in <code>content/</code> at runtime, so it must be ' +
+      'served over HTTP (GitHub Pages does this automatically). If you opened the file directly, run a ' +
+      'local server first.</div>';
   }
 
   /* ---------------- Boot ---------------- */
@@ -348,7 +346,7 @@
     if (toggle) toggle.addEventListener("click", function () {
       var next = document.documentElement.getAttribute("data-theme") === "light" ? "dark" : "light";
       applyTheme(next);
-      renderMermaid();
+      renderMermaidIn(activePanelEl());
     });
 
     var hamburger = document.getElementById("hamburger");
@@ -358,8 +356,12 @@
 
     if (!window.marked) { showError("The markdown renderer (marked) failed to load from the CDN."); return; }
 
-    fetch(MD_URL, { cache: "no-cache" })
-      .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.text(); })
+    Promise.all(TABS.map(function (tab) {
+      return fetch(tab.file, { cache: "no-cache" }).then(function (r) {
+        if (!r.ok) throw new Error(tab.file + " \u2192 HTTP " + r.status);
+        return r.text();
+      });
+    }))
       .then(build)
       .catch(function (err) { showError(String(err && err.message ? err.message : err)); });
   });
