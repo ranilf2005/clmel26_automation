@@ -1,0 +1,78 @@
+---
+# TEST / DEV gate - pure static validation, no device connection required.
+# Run by the GitHub Actions "validate" job. If any assertion fails the job
+# stops with a detailed message and the production deploy never runs.
+- name: "TEST/DEV - validate VLAN and interface intent"
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars_files:
+    - ../vars/vlans.yml
+  tasks:
+    - name: At least one VLAN must be defined
+      ansible.builtin.assert:
+        that:
+          - vlans is defined
+          - vlans | length > 0
+        fail_msg: "No VLANs defined in vars/vlans.yml - nothing to deploy."
+        success_msg: "Found {{ vlans | length }} VLAN definition(s) to validate."
+
+    - name: "VLAN id must be a whole number in the range 1-4094"
+      ansible.builtin.assert:
+        that:
+          - (item.id | string) is match('^[0-9]+$')
+          - (item.id | int) >= 1
+          - (item.id | int) <= 4094
+          - not ((item.id | int) >= 1002 and (item.id | int) <= 1005)
+        fail_msg: >-
+          INVALID VLAN id '{{ item.id }}' (name '{{ item.name | default("?") }}').
+          VLAN ids must be a whole number 1-4094 and must not use the reserved
+          range 1002-1005. Fix vars/vlans.yml and push again.
+        success_msg: "VLAN id {{ item.id }} OK."
+        quiet: true
+      loop: "{{ vlans }}"
+      loop_control:
+        label: "vlan {{ item.id | default('?') }}"
+
+    - name: "VLAN name must be 1-32 chars with no spaces"
+      ansible.builtin.assert:
+        that:
+          - item.name is defined
+          - (item.name | string) | length > 0
+          - (item.name | string) | length <= 32
+          - item.name is match('^[A-Za-z0-9_-]+$')
+        fail_msg: >-
+          INVALID VLAN name '{{ item.name | default("") }}' for VLAN id
+          {{ item.id | default("?") }}. Use 1-32 characters: letters, numbers,
+          underscore or hyphen only (no spaces).
+        quiet: true
+      loop: "{{ vlans }}"
+      loop_control:
+        label: "vlan {{ item.id | default('?') }}"
+
+    - name: "Interface must match GigabitEthernet<slot>/<port>"
+      ansible.builtin.assert:
+        that:
+          - item.1 is match('^GigabitEthernet[0-9]+/[0-9]+$')
+        fail_msg: >-
+          INVALID interface '{{ item.1 }}' on VLAN {{ item.0.id }}. Interfaces
+          must look like GigabitEthernet<slot>/<port> (for example
+          GigabitEthernet0/1). Check for typos and push again.
+        quiet: true
+      loop: "{{ vlans | subelements('interfaces') }}"
+      loop_control:
+        label: "{{ item.1 }}"
+
+    - name: "VLAN ids must be unique"
+      ansible.builtin.assert:
+        that:
+          - (vlans | map(attribute='id') | list | length) ==
+            (vlans | map(attribute='id') | list | unique | length)
+        fail_msg: >-
+          Duplicate VLAN ids detected in vars/vlans.yml. Every VLAN id must be
+          unique.
+        success_msg: "All VLAN ids are unique."
+
+    - name: "Validation passed"
+      ansible.builtin.debug:
+        msg: "All VLAN/interface checks passed - safe to promote to production."

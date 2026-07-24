@@ -13,8 +13,9 @@
     { file: "prepare-lab.html",    num: "2",       title: "Prepare the Lab",   group: "Lab Guide" },
     { file: "gitlab-project.html", num: "3",       title: "GitLab Project",    group: "Lab Guide" },
     { file: "pipeline.html",       num: "4",       title: "Pipeline Run",      group: "Lab Guide" },
-    { file: "project-files.html",  num: "5",       title: "Project Files",     group: "Reference" },
-    { file: "appendix-other.html", num: "6",       title: "Appendix",          group: "Reference" },
+    { file: "ansible-vlans.html", num: "5",       title: "Ansible VLAN Task", group: "Lab Guide" },
+    { file: "project-files.html",  num: "6",       title: "Project Files",     group: "Reference" },
+    { file: "appendix-other.html", num: "7",       title: "Appendix",          group: "Reference" },
     { file: "topologies.html",     num: "\u25C9",  title: "Topologies",        group: "Reference" },
     { file: "conclusion.html",     num: "\u2713",  title: "Conclusion",        group: "Reference" }
   ];

@@ -1,0 +1,11 @@
+---
+# Connection settings for every router (Cisco IOS / IOS-XE over SSH).
+# NOTE: lab credentials only. For real deployments keep secrets in
+# Ansible Vault or CI/CD secrets - never commit plain-text passwords.
+ansible_connection: ansible.netcommon.network_cli
+ansible_network_os: cisco.ios.ios
+ansible_user: admin
+ansible_password: C1sco12345
+ansible_become: true
+ansible_become_method: enable
+ansible_become_password: C1sco12345

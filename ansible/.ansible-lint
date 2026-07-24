@@ -1,0 +1,5 @@
+---
+# Keep the demo focused: fail on real errors, not style opinions.
+profile: min
+exclude_paths:
+  - collections/

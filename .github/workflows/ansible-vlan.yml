@@ -1,0 +1,71 @@
+name: Ansible VLAN CI/CD
+
+# Test/Dev validation runs on every push & PR that touches the Ansible task.
+# Production deploy is gated: it needs validation to pass, only runs on main,
+# and targets the "production" environment (add required reviewers for a manual
+# approval) on a self-hosted runner that can reach CML (198.18.1.x).
+on:
+  push:
+    paths:
+      - "ansible/**"
+      - ".github/workflows/ansible-vlan.yml"
+  pull_request:
+    paths:
+      - "ansible/**"
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: ansible
+
+jobs:
+  validate:
+    name: "Test / Dev - validate intent"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Ansible and linters
+        run: |
+          python -m pip install --upgrade pip
+          pip install "ansible-core>=2.16" ansible-lint yamllint
+          ansible-galaxy collection install -r requirements.yml
+
+      - name: Lint YAML
+        run: yamllint .
+
+      - name: Lint playbooks
+        run: ansible-lint playbooks/
+
+      - name: Syntax check
+        run: ansible-playbook playbooks/configure_vlans.yml --syntax-check
+
+      - name: Validate VLAN and interface intent
+        run: ansible-playbook playbooks/validate_vlans.yml
+
+  deploy:
+    name: "Production - apply to routers"
+    needs: validate
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: self-hosted
+    environment:
+      name: production
+      url: https://ranilf2005.github.io/clmel26_automation/
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install collections
+        run: ansible-galaxy collection install -r requirements.yml
+
+      - name: Pre-flight dry run (no changes)
+        run: ansible-playbook -i inventory/hosts.yml playbooks/configure_vlans.yml -e target=prod --check --diff
+
+      - name: Deploy VLANs to production
+        run: ansible-playbook -i inventory/hosts.yml playbooks/configure_vlans.yml -e target=prod

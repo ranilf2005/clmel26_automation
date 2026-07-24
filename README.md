@@ -34,6 +34,23 @@ git push ─▶ GitLab Runner ─▶ pyATS tests (ping + routes)
 - **Case A** — all tests pass → pipeline **SUCCESS**, `Loopback300` configured.
 - **Case B** — any test fails → pipeline **FAILED**, loopback not configured.
 
+## Ansible VLAN task (GitHub Actions)
+
+A second, GitHub-native pipeline shows the same guardrail with **Ansible**. Attendees
+describe VLANs in [`ansible/vars/vlans.yml`](ansible/vars/vlans.yml); a GitHub Actions
+`validate` job (test/dev) asserts the schema — a wrong VLAN id or interface name fails
+with a detailed message and **nothing is deployed**. After the fix passes, a gated
+`deploy` job (needs `validate`, `main` only, `environment: production` with required
+reviewers) applies the VLANs to the routers. Full walkthrough:
+**https://ranilf2005.github.io/clmel26_automation/ansible-vlans.html**
+
+```bash
+cd ansible
+ansible-galaxy collection install -r requirements.yml
+ansible-playbook playbooks/validate_vlans.yml            # test/dev gate
+ansible-playbook playbooks/configure_vlans.yml -e target=prod   # gated deploy
+```
+
 ## Project structure
 
 ```
@@ -48,6 +65,15 @@ clmel26_automation/
 │       └── test_ping_routes.py  # ping + static-route test cases
 ├── configs/
 │   └── loopbacks.yaml           # declarative loopback definitions
+├── ansible/                     # Ansible VLAN task (GitHub Actions)
+│   ├── inventory/hosts.yml      # test + prod device groups
+│   ├── group_vars/all.yml       # connection credentials
+│   ├── vars/vlans.yml           # VLAN intent (attendees edit this)
+│   └── playbooks/
+│       ├── validate_vlans.yml   # test/dev gate: schema asserts
+│       └── configure_vlans.yml  # applies VLANs to routers
+├── .github/workflows/
+│   └── ansible-vlan.yml         # CI/CD: validate (test/dev) -> deploy (prod)
 └── docs/                        # HTML lab guide (GitHub Pages source)
 ```
 

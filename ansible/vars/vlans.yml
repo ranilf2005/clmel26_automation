@@ -1,0 +1,22 @@
+---
+# =====================================================================
+#  EDIT ME - this is the file attendees change.
+#  The test/dev pipeline validates every entry BEFORE any device is
+#  touched. Rules enforced by playbooks/validate_vlans.yml:
+#    - id        : whole number 1-4094 (1002-1005 are reserved)
+#    - name      : 1-32 chars, letters/numbers/underscore/hyphen only
+#    - interface : GigabitEthernet<slot>/<port>   e.g. GigabitEthernet0/1
+# =====================================================================
+vlans:
+  - id: 10
+    name: USERS
+    interfaces:
+      - GigabitEthernet0/1
+  - id: 20
+    name: VOICE
+    interfaces:
+      - GigabitEthernet0/2
+  - id: 30
+    name: MGMT
+    interfaces:
+      - GigabitEthernet0/3

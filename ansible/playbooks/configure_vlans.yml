@@ -1,0 +1,37 @@
+---
+# Applies the validated VLANs and access interfaces to the routers.
+#   -e target=test  -> validation / dry-run devices (default)
+#   -e target=prod  -> production devices (gated deploy job only)
+- name: "Configure VLANs and access ports from vars/vlans.yml"
+  hosts: "{{ target | default('test') }}"
+  gather_facts: false
+  vars_files:
+    - ../vars/vlans.yml
+  tasks:
+    - name: Build the ios_vlans config list
+      ansible.builtin.set_fact:
+        vlan_config: "{{ vlan_config | default([]) + [{'vlan_id': item.id, 'name': item.name}] }}"
+      loop: "{{ vlans }}"
+      loop_control:
+        label: "vlan {{ item.id }} ({{ item.name }})"
+
+    - name: Create or update VLANs
+      cisco.ios.ios_vlans:
+        config: "{{ vlan_config }}"
+        state: merged
+
+    - name: Assign access VLANs to interfaces
+      cisco.ios.ios_l2_interfaces:
+        config:
+          - name: "{{ item.1 }}"
+            mode: access
+            access:
+              vlan: "{{ item.0.id }}"
+        state: merged
+      loop: "{{ vlans | subelements('interfaces') }}"
+      loop_control:
+        label: "{{ item.1 }} -> vlan {{ item.0.id }}"
+
+    - name: Save running-config to startup-config
+      cisco.ios.ios_config:
+        save_when: modified
